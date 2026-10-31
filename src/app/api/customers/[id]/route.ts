@@ -5,7 +5,7 @@ import { updateCustomerSchema, validateRequest } from '@/lib/validation/schemas'
 import { apiSuccess, handleApiError } from '@/lib/api/response';
 import { ForbiddenError, NotFoundError } from '@/lib/api/errors';
 import { createAuditLog } from '@/lib/api/audit';
-import { UserRole } from '@prisma/client';
+import { CustomerStatus, Prisma, UserRole } from '@prisma/client';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -80,12 +80,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ...(data.contactName ? { contactName: data.contactName } : {}),
         ...(data.companyName !== undefined ? { companyName: data.companyName } : {}),
         ...(data.phone !== undefined ? { phone: data.phone } : {}),
-        ...(data.billingAddress ? { billingAddress: data.billingAddress as any } : {}),
-        ...(data.shippingAddress ? { shippingAddress: data.shippingAddress as any } : {}),
+        ...(data.billingAddress ? { billingAddress: data.billingAddress as Prisma.InputJsonValue } : {}),
+        ...(data.shippingAddress ? { shippingAddress: data.shippingAddress as Prisma.InputJsonValue } : {}),
         ...(data.currency && session.role !== UserRole.CUSTOMER ? { currency: data.currency } : {}),
         ...(data.taxExempt !== undefined && session.role !== UserRole.CUSTOMER ? { taxExempt: data.taxExempt } : {}),
-        ...(data.status && session.role !== UserRole.CUSTOMER ? { status: data.status as any } : {}),
-        ...(data.metadata ? { metadata: data.metadata as any } : {}),
+        ...(data.status && session.role !== UserRole.CUSTOMER ? { status: data.status as CustomerStatus } : {}),
+        ...(data.metadata ? { metadata: data.metadata as Prisma.InputJsonValue } : {}),
       },
     });
 

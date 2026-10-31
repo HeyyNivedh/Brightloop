@@ -1,8 +1,7 @@
-import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { apiSuccess, handleApiError } from '@/lib/api/response';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const plans = await prisma.subscriptionPlan.findMany({
       where: { active: true },

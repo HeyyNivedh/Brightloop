@@ -6,7 +6,7 @@ export interface ApiSuccessResponse<T> {
     limit?: number;
     total?: number;
     totalPages?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -15,7 +15,7 @@ export interface ApiErrorResponse {
   error: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
   };
 }
 

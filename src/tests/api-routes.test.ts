@@ -11,7 +11,7 @@ import { devEmailStore } from '../lib/auth/email-adapter';
 import { prisma } from '../lib/db';
 import { NextRequest } from 'next/server';
 
-function createJsonRequest(url: string, method: string, body?: any, token?: string) {
+function createJsonRequest(url: string, method: string, body?: unknown, token?: string) {
   const headers: Record<string, string> = {
     'content-type': 'application/json',
   };

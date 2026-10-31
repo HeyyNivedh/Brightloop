@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { UserRole } from '@prisma/client';
 import { requireCustomerScope } from '../lib/auth/session';
 import { signSessionToken } from '../lib/auth/tokens';
-import { ForbiddenError, UnauthorizedError } from '../lib/api/errors';
+import { ForbiddenError } from '../lib/api/errors';
 import { prisma } from '../lib/db';
 
 test('Customer Data Isolation & IDOR Prevention', async (t) => {
@@ -57,7 +57,7 @@ test('Customer Data Isolation & IDOR Prevention', async (t) => {
     // Alice attempting to access Bob's data
     await assert.rejects(
       async () => requireCustomerScope(req, bobCustomerId),
-      (err: any) => {
+      (err: unknown) => {
         assert.ok(err instanceof ForbiddenError);
         assert.equal(err.statusCode, 403);
         assert.ok(err.message.includes('only access your own customer records'));
@@ -70,7 +70,7 @@ test('Customer Data Isolation & IDOR Prevention', async (t) => {
     const req = createMockRequest(bobToken);
     await assert.rejects(
       async () => requireCustomerScope(req, aliceCustomerId),
-      (err: any) => err instanceof ForbiddenError && err.statusCode === 403
+      (err: unknown) => err instanceof ForbiddenError && err.statusCode === 403
     );
   });
 

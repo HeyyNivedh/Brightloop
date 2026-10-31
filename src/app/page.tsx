@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/db';
-import Link from 'next/link';
 
 export const instant = false;
 
@@ -27,7 +26,7 @@ export default async function Home() {
     ]);
     counts = { users: u, customers: c, products: p, plans: pl, subscriptions: s, invoices: i, auditLogs: a };
     dbStatus = 'ONLINE';
-  } catch (err) {
+  } catch {
     dbStatus = 'OFFLINE';
   }
 

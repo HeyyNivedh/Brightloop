@@ -35,5 +35,9 @@ yarn-error.log*
 .env*.local
 !.env.example
 
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
 # local embedded database
 /.data/

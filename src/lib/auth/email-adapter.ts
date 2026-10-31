@@ -82,12 +82,12 @@ export class DevEmailAdapter implements EmailAdapter {
 export class SmtpEmailAdapter implements EmailAdapter {
   async sendPasswordResetEmail(email: string, token: string, resetUrl: string): Promise<boolean> {
     // If nodemailer or external provider is configured
-    console.log(`[SMTP] Sending password reset email via ${env.SMTP_HOST || 'configured host'} to ${email}`);
+    console.log(`[SMTP] Sending password reset email via ${env.SMTP_HOST || 'configured host'} to ${email} (token: ${token.slice(0, 4)}..., url: ${resetUrl})`);
     return true;
   }
 
   async sendWelcomeEmail(email: string, name: string): Promise<boolean> {
-    console.log(`[SMTP] Sending welcome email to ${email}`);
+    console.log(`[SMTP] Sending welcome email to ${email} (${name})`);
     return true;
   }
 }

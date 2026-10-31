@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { UserRole } from '@prisma/client';
-import { hasPermission, hasMinimumRole, isOneOfRoles, ROLE_PERMISSIONS } from '../lib/rbac/permissions';
+import { hasPermission } from '../lib/rbac/permissions';
 import { requireRole } from '../lib/auth/session';
 import { signSessionToken } from '../lib/auth/tokens';
 import { ForbiddenError, UnauthorizedError } from '../lib/api/errors';
@@ -76,7 +76,7 @@ test('Server-Side requireRole Route Guard Enforcement', async (t) => {
     const req = createMockRequest();
     await assert.rejects(
       async () => requireRole(req, [UserRole.ADMIN]),
-      (err: any) => err instanceof UnauthorizedError && err.statusCode === 401
+      (err: unknown) => err instanceof UnauthorizedError && err.statusCode === 401
     );
   });
 
@@ -90,7 +90,7 @@ test('Server-Side requireRole Route Guard Enforcement', async (t) => {
     const req = createMockRequest(staffToken);
     await assert.rejects(
       async () => requireRole(req, [UserRole.ADMIN]),
-      (err: any) => err instanceof ForbiddenError && err.statusCode === 403
+      (err: unknown) => err instanceof ForbiddenError && err.statusCode === 403
     );
   });
 
@@ -98,7 +98,7 @@ test('Server-Side requireRole Route Guard Enforcement', async (t) => {
     const req = createMockRequest(customerToken);
     await assert.rejects(
       async () => requireRole(req, [UserRole.ADMIN, UserRole.STAFF]),
-      (err: any) => err instanceof ForbiddenError && err.statusCode === 403
+      (err: unknown) => err instanceof ForbiddenError && err.statusCode === 403
     );
   });
 

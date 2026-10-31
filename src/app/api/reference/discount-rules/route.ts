@@ -5,7 +5,7 @@ import { createDiscountRuleSchema, validateRequest } from '@/lib/validation/sche
 import { apiSuccess, handleApiError } from '@/lib/api/response';
 import { ConflictError } from '@/lib/api/errors';
 import { createAuditLog } from '@/lib/api/audit';
-import { UserRole } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
   try {
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
         startsAt: data.startsAt,
         endsAt: data.endsAt,
         usageLimit: data.usageLimit,
-        applicablePlanIds: data.applicablePlanIds ? (data.applicablePlanIds as any) : undefined,
+        applicablePlanIds: data.applicablePlanIds ? (data.applicablePlanIds as Prisma.InputJsonValue) : undefined,
         active: data.active,
       },
     });

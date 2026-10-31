@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { getJwtSecretKey } from '@/lib/env';
 
 const AUTH_COOKIE_NAME = 'brightloop_session';
-const secretKey = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'brightloop-super-secret-jwt-key-for-development-change-in-prod-min-32-chars'
-);
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Protected administrative and internal API routes
@@ -34,6 +32,7 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
+      const secretKey = getJwtSecretKey();
       const { payload } = await jwtVerify(token, secretKey);
       if (pathname.startsWith('/api/users/staff') && payload.role !== 'ADMIN') {
         return NextResponse.json(
@@ -47,7 +46,7 @@ export async function middleware(request: NextRequest) {
           { status: 403 }
         );
       }
-    } catch (err) {
+    } catch {
       return NextResponse.json(
         {
           success: false,
@@ -67,3 +66,4 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/api/users/staff/:path*', '/api/audit-logs/:path*'],
 };
+

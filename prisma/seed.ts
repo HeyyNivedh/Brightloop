@@ -105,7 +105,7 @@ async function main() {
     },
   });
 
-  const staffUser = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'staff@brightloop.com',
       name: 'Operations Manager',
@@ -155,7 +155,7 @@ async function main() {
     },
   });
 
-  const customerTechNova = await prisma.customer.create({
+  await prisma.customer.create({
     data: {
       customerNumber: 'CUST-00002',
       companyName: 'TechNova Solutions Ltd.',
@@ -174,7 +174,7 @@ async function main() {
     },
   });
 
-  const customerCloudScale = await prisma.customer.create({
+  await prisma.customer.create({
     data: {
       customerNumber: 'CUST-00003',
       companyName: 'CloudScale Global',
@@ -230,7 +230,7 @@ async function main() {
   console.log('✓ Seeded products and product variants');
 
   // 7. Subscription Plans & Pricing
-  const planStarter = await prisma.subscriptionPlan.create({
+  await prisma.subscriptionPlan.create({
     data: {
       productId: productCloud.id,
       variantId: productCloud.variants[0].id,
@@ -276,7 +276,7 @@ async function main() {
     include: { pricing: true },
   });
 
-  const planEnterpriseYearly = await prisma.subscriptionPlan.create({
+  await prisma.subscriptionPlan.create({
     data: {
       productId: productAnalytics.id,
       variantId: productAnalytics.variants[0].id,

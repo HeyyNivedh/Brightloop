@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../db';
 
 export interface AuditLogOptions {
@@ -5,8 +6,8 @@ export interface AuditLogOptions {
   action: string;
   entityType: string;
   entityId: string;
-  oldValues?: any;
-  newValues?: any;
+  oldValues?: Prisma.InputJsonValue;
+  newValues?: Prisma.InputJsonValue;
   ipAddress?: string | null;
   userAgent?: string | null;
 }
@@ -19,8 +20,8 @@ export async function createAuditLog(options: AuditLogOptions) {
         action: options.action,
         entityType: options.entityType,
         entityId: options.entityId,
-        oldValues: options.oldValues ? (options.oldValues as any) : undefined,
-        newValues: options.newValues ? (options.newValues as any) : undefined,
+        oldValues: options.oldValues !== undefined ? options.oldValues : Prisma.JsonNull,
+        newValues: options.newValues !== undefined ? options.newValues : Prisma.JsonNull,
         ipAddress: options.ipAddress ?? null,
         userAgent: options.userAgent ?? null,
       },

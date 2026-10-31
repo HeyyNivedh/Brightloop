@@ -1,9 +1,9 @@
 export class AppError extends Error {
   public readonly statusCode: number;
   public readonly code: string;
-  public readonly details?: any;
+  public readonly details?: unknown;
 
-  constructor(message: string, statusCode = 500, code = 'INTERNAL_SERVER_ERROR', details?: any) {
+  constructor(message: string, statusCode = 500, code = 'INTERNAL_SERVER_ERROR', details?: unknown) {
     super(message);
     this.name = this.constructor.name;
     this.statusCode = statusCode;
@@ -14,7 +14,7 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: unknown) {
     super(message, 400, 'VALIDATION_ERROR', details);
   }
 }

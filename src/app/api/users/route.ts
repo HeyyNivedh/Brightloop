@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/session';
 import { apiSuccess, handleApiError } from '@/lib/api/response';
 import { getPaginationParams, buildPaginationMeta } from '@/lib/api/pagination';
-import { Prisma, UserRole } from '@prisma/client';
+import { Prisma, UserRole, UserStatus } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
     const { page, limit, skip, sortBy = 'createdAt', sortOrder = 'desc', search } = getPaginationParams(req.nextUrl);
     const roleParam = req.nextUrl.searchParams.get('role') as UserRole | null;
-    const statusParam = req.nextUrl.searchParams.get('status') as any;
+    const statusParam = req.nextUrl.searchParams.get('status') as UserStatus | null;
 
     const where: Prisma.UserWhereInput = {
       ...(roleParam && Object.values(UserRole).includes(roleParam) ? { role: roleParam } : {}),

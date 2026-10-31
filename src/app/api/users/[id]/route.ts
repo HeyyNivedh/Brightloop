@@ -5,7 +5,7 @@ import { updateUserSchema, validateRequest } from '@/lib/validation/schemas';
 import { apiSuccess, handleApiError } from '@/lib/api/response';
 import { ForbiddenError, NotFoundError } from '@/lib/api/errors';
 import { createAuditLog } from '@/lib/api/audit';
-import { UserRole } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -75,7 +75,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       data: {
         ...(data.name ? { name: data.name } : {}),
         ...(isAdmin && data.role ? { role: data.role as UserRole } : {}),
-        ...(isAdmin && data.status ? { status: data.status as any } : {}),
+        ...(isAdmin && data.status ? { status: data.status as UserStatus } : {}),
       },
       select: {
         id: true,

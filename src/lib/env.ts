@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const envSchema = z.object({
+export const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   DB_PORT: z.string().default('54333'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters long for security'),
@@ -18,28 +18,44 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
-function loadEnv(): Env {
-  const result = envSchema.safeParse(process.env);
+/**
+ * Validate an environment dictionary against envSchema.
+ * Throws an explicit Error if any required variable is missing or invalid.
+ */
+export function validateEnv(input: Record<string, unknown> = process.env): Env {
+  const result = envSchema.safeParse(input);
   if (!result.success) {
-    console.error('❌ Invalid environment variables configuration:');
-    console.error(result.error.format());
-    // In test or local dev environment, provide safe fallback
-    if (process.env.NODE_ENV === 'test' || !process.env.DATABASE_URL) {
-      return {
-        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:54333/brightloop?schema=public',
-        DB_PORT: '54333',
-        JWT_SECRET: process.env.JWT_SECRET || 'brightloop-super-secret-jwt-key-for-development-change-in-prod-min-32-chars',
-        JWT_EXPIRES_IN: '7d',
-        PASSWORD_RESET_TOKEN_EXPIRY_MINUTES: 60,
-        NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
-        NODE_ENV: (process.env.NODE_ENV as any) || 'development',
-        EMAIL_ADAPTER: 'development',
-        SMTP_FROM: 'noreply@brightloop.local',
-      };
-    }
-    throw new Error('Invalid environment variables configuration');
+    const errorDetails = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ');
+    throw new Error(`Invalid environment variables configuration: ${errorDetails}`);
   }
   return result.data;
 }
 
+function loadEnv(): Env {
+  // Ensure .env is loaded if running in Node.js environment and not yet loaded
+  if (typeof process.loadEnvFile === 'function') {
+    try {
+      process.loadEnvFile();
+    } catch {
+      // Ignore if .env is missing or already loaded
+    }
+  }
+
+  return validateEnv(process.env);
+}
+
 export const env = loadEnv();
+
+/**
+ * Get the validated JWT secret string.
+ */
+export function getJwtSecret(): string {
+  return env.JWT_SECRET;
+}
+
+/**
+ * Get the validated JWT secret encoded as Uint8Array for jose / jwtVerify.
+ */
+export function getJwtSecretKey(): Uint8Array {
+  return new TextEncoder().encode(env.JWT_SECRET);
+}

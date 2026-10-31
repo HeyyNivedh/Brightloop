@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
-import { AppError, ValidationError } from './errors';
+import { AppError } from './errors';
 import { ApiErrorResponse, ApiSuccessResponse } from '@/types/api';
 
 export function apiSuccess<T>(data: T, status = 200, meta?: ApiSuccessResponse<T>['meta']): NextResponse {
@@ -13,7 +13,7 @@ export function apiSuccess<T>(data: T, status = 200, meta?: ApiSuccessResponse<T
   return NextResponse.json(body, { status });
 }
 
-export function apiError(message: string, status = 500, code = 'INTERNAL_SERVER_ERROR', details?: any): NextResponse {
+export function apiError(message: string, status = 500, code = 'INTERNAL_SERVER_ERROR', details?: unknown): NextResponse {
   const body: ApiErrorResponse = {
     success: false,
     error: {
@@ -27,7 +27,7 @@ export function apiError(message: string, status = 500, code = 'INTERNAL_SERVER_
 
 export function handleApiError(error: unknown): NextResponse {
   // Rethrow Next.js internal navigation/prerender bailouts
-  if (error && typeof error === 'object' && 'digest' in error && String((error as any).digest).startsWith('NEXT_')) {
+  if (error && typeof error === 'object' && 'digest' in error && String((error as { digest?: unknown }).digest).startsWith('NEXT_')) {
     throw error;
   }
   if (error instanceof AppError) {
@@ -36,9 +36,9 @@ export function handleApiError(error: unknown): NextResponse {
 
   // Zod schema validation errors
   if (error instanceof ZodError) {
-    const formattedErrors = (error.issues || []).map((e: any) => ({
-      field: Array.isArray(e.path) ? e.path.join('.') : String(e.path),
-      message: e.message,
+    const formattedErrors = error.issues.map((issue) => ({
+      field: Array.isArray(issue.path) ? issue.path.join('.') : String(issue.path),
+      message: issue.message,
     }));
     return apiError('Validation failed for one or more fields', 400, 'VALIDATION_ERROR', formattedErrors);
   }

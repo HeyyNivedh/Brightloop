@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import {
   passwordSchema,
   emailSchema,
-  registerSchema,
   createCustomerSchema,
-  createTaxRuleSchema,
-  createDiscountRuleSchema,
+  createSubscriptionSchema,
+  createInvoiceSchema,
+  createPaymentSchema,
+  createProductSchema,
 } from '../lib/validation/schemas';
 import { validatePasswordRequirements } from '../lib/auth/password';
 import { getPaginationParams } from '../lib/api/pagination';
@@ -107,5 +108,65 @@ test('Pagination and Query Params Parsing', async (t) => {
   await t.test('clamps limit to maximum of 100 to prevent DoS', () => {
     const params = getPaginationParams(new URL('http://localhost:3000/api/customers?limit=9999'));
     assert.equal(params.limit, 100);
+  });
+});
+
+test('Downstream Modules Schemas Validation (Subscriptions, Invoices, Payments, Products)', async (t) => {
+  await t.test('validates createProductSchema input', () => {
+    const parsed = createProductSchema.parse({
+      code: 'PROD-CLOUD-PRO',
+      name: 'Brightloop Cloud Pro',
+      category: 'INFRASTRUCTURE',
+    });
+    assert.equal(parsed.code, 'PROD-CLOUD-PRO');
+    assert.equal(parsed.active, true);
+  });
+
+  await t.test('validates createSubscriptionSchema input with line items', () => {
+    const now = new Date();
+    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const parsed = createSubscriptionSchema.parse({
+      customerId: 'cust_123',
+      planId: 'plan_456',
+      currentPeriodEnd: periodEnd,
+      lines: [
+        {
+          description: 'Cloud Compute Core',
+          quantity: 2,
+          unitPrice: 199.0,
+        },
+      ],
+    });
+    assert.equal(parsed.customerId, 'cust_123');
+    assert.equal(parsed.autoRenew, true);
+    assert.equal(parsed.lines?.length, 1);
+  });
+
+  await t.test('validates createInvoiceSchema requiring line items', () => {
+    const dueDate = new Date();
+    const parsed = createInvoiceSchema.parse({
+      customerId: 'cust_123',
+      dueDate,
+      lines: [
+        {
+          description: 'Billing Month 1',
+          quantity: 1,
+          unitPrice: 199.0,
+        },
+      ],
+    });
+    assert.equal(parsed.currency, 'USD');
+    assert.equal(parsed.lines.length, 1);
+  });
+
+  await t.test('validates createPaymentSchema with positive amount and method', () => {
+    const parsed = createPaymentSchema.parse({
+      invoiceId: 'inv_123',
+      customerId: 'cust_123',
+      amount: 199.0,
+      paymentMethod: 'STRIPE',
+    });
+    assert.equal(parsed.amount, 199.0);
+    assert.equal(parsed.paymentMethod, 'STRIPE');
   });
 });

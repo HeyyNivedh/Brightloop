@@ -1,14 +1,13 @@
 import { SignJWT, jwtVerify } from 'jose';
 import crypto from 'crypto';
-import { env } from '../env';
+import { env, getJwtSecretKey } from '../env';
 import { UserSessionPayload } from '@/types/api';
-
-const secretKey = new TextEncoder().encode(env.JWT_SECRET);
 
 /**
  * Sign a secure JWT session token.
  */
 export async function signSessionToken(payload: UserSessionPayload, expiresIn = env.JWT_EXPIRES_IN): Promise<string> {
+  const secretKey = getJwtSecretKey();
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -21,9 +20,10 @@ export async function signSessionToken(payload: UserSessionPayload, expiresIn = 
  */
 export async function verifySessionToken(token: string): Promise<UserSessionPayload | null> {
   try {
+    const secretKey = getJwtSecretKey();
     const { payload } = await jwtVerify(token, secretKey);
     return payload as unknown as UserSessionPayload;
-  } catch (err) {
+  } catch {
     return null;
   }
 }

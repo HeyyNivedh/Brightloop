@@ -4,7 +4,10 @@ import { prisma } from '../lib/db';
 import { hashPassword, verifyPassword } from '../lib/auth/password';
 import { signSessionToken, verifySessionToken, generateSecureRandomToken, hashToken } from '../lib/auth/tokens';
 import { devEmailStore } from '../lib/auth/email-adapter';
-import { withTransaction } from '../lib/api/transaction';
+import { validateEnv } from '../lib/env';
+import { proxy } from '../proxy';
+import { NextRequest } from 'next/server';
+import { SignJWT } from 'jose';
 
 test('Password Hashing and Verification', async () => {
   const plain = 'StrongPass123!@#';
@@ -42,6 +45,126 @@ test('JWT Session Signing and Verification', async () => {
   const tamperedToken = token.slice(0, -5) + 'abcde';
   const invalidDecoded = await verifySessionToken(tamperedToken);
   assert.equal(invalidDecoded, null);
+
+  // Expired token test
+  const expiredToken = await signSessionToken(payload, '-1s');
+  const expiredDecoded = await verifySessionToken(expiredToken);
+  assert.equal(expiredDecoded, null);
+
+  // Forged token signed with untrusted secret test
+  const forgedSecretKey = new TextEncoder().encode('untrusted-foreign-secret-key-that-is-at-least-32-chars-long');
+  const forgedToken = await new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(forgedSecretKey);
+  const forgedDecoded = await verifySessionToken(forgedToken);
+  assert.equal(forgedDecoded, null);
+});
+
+test('JWT Secret and Environment Security Validation', () => {
+  // 1. Missing JWT_SECRET must throw and cannot fall back to a default
+  assert.throws(() => {
+    validateEnv({
+      DATABASE_URL: 'postgresql://postgres:postgres@localhost:54333/brightloop',
+      NODE_ENV: 'production',
+    });
+  }, (err: Error) => err.message.includes('JWT_SECRET'));
+
+  // 2. Short JWT_SECRET (< 32 chars) must throw and cannot fall back
+  assert.throws(() => {
+    validateEnv({
+      DATABASE_URL: 'postgresql://postgres:postgres@localhost:54333/brightloop',
+      JWT_SECRET: 'too-short-secret',
+      NODE_ENV: 'production',
+    });
+  }, (err: Error) => err.message.includes('JWT_SECRET must be at least 32 characters'));
+
+  // 3. Missing DATABASE_URL must throw
+  assert.throws(() => {
+    validateEnv({
+      JWT_SECRET: 'a'.repeat(32),
+      NODE_ENV: 'production',
+    });
+  }, (err: Error) => err.message.includes('DATABASE_URL'));
+
+  // 4. Valid production environment succeeds without fallbacks
+  const valid = validateEnv({
+    DATABASE_URL: 'postgresql://postgres:postgres@localhost:54333/brightloop',
+    JWT_SECRET: 'production-secret-with-plenty-of-entropy-and-length-32-plus',
+    NODE_ENV: 'production',
+  });
+  assert.equal(valid.JWT_SECRET, 'production-secret-with-plenty-of-entropy-and-length-32-plus');
+});
+
+test('Proxy Route Protection and Authorization Enforcement', async (t) => {
+  const adminToken = await signSessionToken({
+    userId: 'admin_proxy_1',
+    email: 'admin@brightloop.com',
+    name: 'Admin Proxy',
+    role: 'ADMIN',
+  });
+
+  const staffToken = await signSessionToken({
+    userId: 'staff_proxy_1',
+    email: 'staff@brightloop.com',
+    name: 'Staff Proxy',
+    role: 'STAFF',
+  });
+
+  const forgedSecretKey = new TextEncoder().encode('attacker-provided-key-at-least-32-chars-long');
+  const forgedToken = await new SignJWT({
+    userId: 'hacker_1',
+    email: 'hacker@evil.com',
+    name: 'Attacker',
+    role: 'ADMIN',
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(forgedSecretKey);
+
+  await t.test('rejects unauthenticated request to /api/users/staff with 401', async () => {
+    const req = new NextRequest(new URL('http://localhost:3000/api/users/staff'));
+    const res = await proxy(req);
+    assert.equal(res.status, 401);
+    const body = await res.json();
+    assert.equal(body.error.code, 'UNAUTHORIZED');
+  });
+
+  await t.test('rejects token signed with unauthorized secret with 401', async () => {
+    const req = new NextRequest(new URL('http://localhost:3000/api/users/staff'), {
+      headers: { authorization: `Bearer ${forgedToken}` },
+    });
+    const res = await proxy(req);
+    assert.equal(res.status, 401);
+    const body = await res.json();
+    assert.equal(body.error.code, 'UNAUTHORIZED');
+  });
+
+  await t.test('rejects STAFF token accessing /api/users/staff with 403 FORBIDDEN', async () => {
+    const req = new NextRequest(new URL('http://localhost:3000/api/users/staff'), {
+      headers: { authorization: `Bearer ${staffToken}` },
+    });
+    const res = await proxy(req);
+    assert.equal(res.status, 403);
+    const body = await res.json();
+    assert.equal(body.error.code, 'FORBIDDEN');
+  });
+
+  await t.test('allows ADMIN token to access /api/users/staff (returns next response)', async () => {
+    const req = new NextRequest(new URL('http://localhost:3000/api/users/staff'), {
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
+    const res = await proxy(req);
+    assert.equal(res.status, 200);
+  });
+
+  await t.test('allows public endpoint to pass through without token', async () => {
+    const req = new NextRequest(new URL('http://localhost:3000/api/auth/login'));
+    const res = await proxy(req);
+    assert.equal(res.status, 200);
+  });
 });
 
 test('Password Reset Token Life Cycle and Security', async (t) => {

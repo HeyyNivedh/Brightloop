@@ -95,7 +95,7 @@ export const createCustomerSchema = z.object({
   taxExempt: z.boolean().default(false),
   billingAddress: addressSchema.optional(),
   shippingAddress: addressSchema.optional(),
-  metadata: z.record(z.string(), z.any()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const updateCustomerSchema = z.object({
@@ -107,7 +107,167 @@ export const updateCustomerSchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).optional(),
   billingAddress: addressSchema.optional(),
   shippingAddress: addressSchema.optional(),
-  metadata: z.record(z.string(), z.any()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+// ==========================================
+// PRODUCTS & PRICING SCHEMAS
+// ==========================================
+
+export const createProductSchema = z.object({
+  code: z.string().trim().min(2, 'Product code is required'),
+  name: z.string().trim().min(2, 'Product name is required'),
+  description: z.string().trim().optional(),
+  category: z.string().trim().optional(),
+  active: z.boolean().default(true),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const updateProductSchema = z.object({
+  name: z.string().trim().min(2).optional(),
+  description: z.string().trim().optional(),
+  category: z.string().trim().optional(),
+  active: z.boolean().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const createProductVariantSchema = z.object({
+  productId: z.string().min(1, 'Product ID is required'),
+  sku: z.string().trim().min(2, 'SKU is required'),
+  name: z.string().trim().min(2, 'Variant name is required'),
+  attributes: z.record(z.string(), z.unknown()).optional(),
+  active: z.boolean().default(true),
+});
+
+export const createPlanPricingSchema = z.object({
+  currency: z.string().length(3).default('USD'),
+  amount: z.number().nonnegative('Amount must be zero or positive'),
+  setupFee: z.number().nonnegative('Setup fee must be zero or positive').default(0),
+  active: z.boolean().default(true),
+  effectiveFrom: z.coerce.date().default(() => new Date()),
+  effectiveTo: z.coerce.date().optional(),
+});
+
+export const createSubscriptionPlanSchema = z.object({
+  productId: z.string().min(1, 'Product ID is required'),
+  variantId: z.string().optional(),
+  code: z.string().trim().min(2, 'Plan code is required'),
+  name: z.string().trim().min(2, 'Plan name is required'),
+  description: z.string().trim().optional(),
+  trialPeriodDays: z.number().int().nonnegative().default(0),
+  billingInterval: z.enum(['DAY', 'WEEK', 'MONTH', 'YEAR']).default('MONTH'),
+  intervalCount: z.number().int().positive().default(1),
+  active: z.boolean().default(true),
+  pricing: z.array(createPlanPricingSchema).min(1, 'At least one pricing tier is required').optional(),
+});
+
+// ==========================================
+// QUOTATIONS SCHEMAS
+// ==========================================
+
+export const quotationLineItemSchema = z.object({
+  productId: z.string().optional(),
+  planId: z.string().optional(),
+  description: z.string().trim().min(1, 'Description is required'),
+  quantity: z.number().int().positive().default(1),
+  unitPrice: z.number().nonnegative('Unit price must be non-negative'),
+  discountAmount: z.number().nonnegative().default(0),
+  taxRate: z.number().nonnegative().max(1).default(0),
+});
+
+export const createQuotationSchema = z.object({
+  customerId: z.string().min(1, 'Customer ID is required'),
+  templateId: z.string().optional(),
+  validUntil: z.coerce.date(),
+  currency: z.string().length(3).default('USD'),
+  notes: z.string().trim().optional(),
+  terms: z.string().trim().optional(),
+  lines: z.array(quotationLineItemSchema).min(1, 'At least one quotation line item is required'),
+});
+
+export const updateQuotationStatusSchema = z.object({
+  status: z.enum(['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED']),
+});
+
+// ==========================================
+// SUBSCRIPTIONS SCHEMAS
+// ==========================================
+
+export const subscriptionLineItemSchema = z.object({
+  description: z.string().trim().min(1, 'Description is required'),
+  quantity: z.number().int().positive().default(1),
+  unitPrice: z.number().nonnegative('Unit price must be non-negative'),
+  discountAmount: z.number().nonnegative().default(0),
+  taxRate: z.number().nonnegative().max(1).default(0),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const createSubscriptionSchema = z.object({
+  customerId: z.string().min(1, 'Customer ID is required'),
+  planId: z.string().min(1, 'Plan ID is required'),
+  currency: z.string().length(3).default('USD'),
+  currentPeriodStart: z.coerce.date().default(() => new Date()),
+  currentPeriodEnd: z.coerce.date(),
+  trialStart: z.coerce.date().optional(),
+  trialEnd: z.coerce.date().optional(),
+  autoRenew: z.boolean().default(true),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  lines: z.array(subscriptionLineItemSchema).optional(),
+});
+
+export const updateSubscriptionStatusSchema = z.object({
+  status: z.enum(['TRIALING', 'ACTIVE', 'PAST_DUE', 'PAUSED', 'CANCELLED', 'EXPIRED']),
+  cancelAtPeriodEnd: z.boolean().optional(),
+});
+
+// ==========================================
+// INVOICES SCHEMAS
+// ==========================================
+
+export const invoiceLineItemSchema = z.object({
+  subscriptionLineId: z.string().optional(),
+  description: z.string().trim().min(1, 'Description is required'),
+  quantity: z.number().int().positive().default(1),
+  unitPrice: z.number().nonnegative('Unit price must be non-negative'),
+  taxAmount: z.number().nonnegative().default(0),
+  discountAmount: z.number().nonnegative().default(0),
+  periodStart: z.coerce.date().optional(),
+  periodEnd: z.coerce.date().optional(),
+});
+
+export const createInvoiceSchema = z.object({
+  customerId: z.string().min(1, 'Customer ID is required'),
+  subscriptionId: z.string().optional(),
+  issueDate: z.coerce.date().default(() => new Date()),
+  dueDate: z.coerce.date(),
+  currency: z.string().length(3).default('USD'),
+  notes: z.string().trim().optional(),
+  lines: z.array(invoiceLineItemSchema).min(1, 'At least one invoice line item is required'),
+});
+
+export const updateInvoiceStatusSchema = z.object({
+  status: z.enum(['DRAFT', 'OPEN', 'PAID', 'VOID', 'UNCOLLECTIBLE']),
+  paidAt: z.coerce.date().optional(),
+});
+
+// ==========================================
+// PAYMENTS SCHEMAS
+// ==========================================
+
+export const createPaymentSchema = z.object({
+  invoiceId: z.string().min(1, 'Invoice ID is required'),
+  customerId: z.string().min(1, 'Customer ID is required'),
+  amount: z.number().positive('Payment amount must be greater than zero'),
+  currency: z.string().length(3).default('USD'),
+  paymentMethod: z.enum(['CREDIT_CARD', 'BANK_TRANSFER', 'STRIPE', 'MANUAL', 'OTHER']).default('CREDIT_CARD'),
+  providerTransactionId: z.string().trim().optional(),
+  reference: z.string().trim().optional(),
+});
+
+export const updatePaymentStatusSchema = z.object({
+  status: z.enum(['PENDING', 'SUCCEEDED', 'FAILED', 'REFUNDED']),
+  failureReason: z.string().optional(),
+  paidAt: z.coerce.date().optional(),
 });
 
 // ==========================================

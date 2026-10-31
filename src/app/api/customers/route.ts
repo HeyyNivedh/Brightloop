@@ -93,9 +93,9 @@ export async function POST(req: NextRequest) {
         phone: data.phone,
         currency: data.currency,
         taxExempt: data.taxExempt,
-        billingAddress: data.billingAddress ? (data.billingAddress as any) : undefined,
-        shippingAddress: data.shippingAddress ? (data.shippingAddress as any) : undefined,
-        metadata: data.metadata ? (data.metadata as any) : undefined,
+        billingAddress: data.billingAddress ? (data.billingAddress as Prisma.InputJsonValue) : undefined,
+        shippingAddress: data.shippingAddress ? (data.shippingAddress as Prisma.InputJsonValue) : undefined,
+        metadata: data.metadata ? (data.metadata as Prisma.InputJsonValue) : undefined,
       },
     });
 
