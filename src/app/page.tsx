@@ -87,6 +87,28 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* Product & Pricing Management Quick Access */}
+        <section className="my-8 p-6 rounded-2xl bg-gradient-to-r from-indigo-950/80 via-slate-900 to-violet-950/80 border border-indigo-800/80 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-indigo-600 text-white text-xs font-bold uppercase tracking-wider">
+                Module 3 Ready
+              </span>
+              <span className="text-sm font-semibold text-white">Product & Pricing Management Portal</span>
+            </div>
+            <p className="text-sm text-slate-300 max-w-2xl">
+              Manage products, configurable variants, recurring subscription plans, regional tax rules, and promotional discounts with the interactive pricing calculation sandbox.
+            </p>
+          </div>
+          <a
+            href="/admin"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition shadow-lg shadow-indigo-600/30 whitespace-nowrap"
+          >
+            <span>Launch Management Console</span>
+            <span>&rarr;</span>
+          </a>
+        </section>
+
         {/* 3-Role Demo Credentials Card */}
         <section className="my-8 p-6 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-900/50 border border-slate-800 shadow-xl">
           <h2 className="text-base font-semibold text-white mb-2 flex items-center gap-2">
