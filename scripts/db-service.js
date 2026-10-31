@@ -59,6 +59,27 @@ async function startServer() {
   }
 
   await pg.start();
+
+  // Ensure initial database exists
+  try {
+    const adminClient = new Client({
+      host: '127.0.0.1',
+      port,
+      user,
+      password,
+      database: 'postgres',
+      connectionTimeoutMillis: 3000,
+    });
+    await adminClient.connect();
+    const res = await adminClient.query('SELECT 1 FROM pg_database WHERE datname = $1', [initialDatabase]);
+    if (res.rowCount === 0) {
+      await adminClient.query(`CREATE DATABASE "${initialDatabase}"`);
+    }
+    await adminClient.end();
+  } catch (err) {
+    // Ignore or log error if already exists
+  }
+
   console.log(`[DB Runner] PostgreSQL started successfully on port ${port}.`);
   console.log(`[DB Runner] Database "${initialDatabase}" is ready for connections.`);
 
